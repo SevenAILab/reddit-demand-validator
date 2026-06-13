@@ -1,6 +1,6 @@
 ---
 name: reddit-demand-validator
-description: Use when the user wants to validate a project, startup, feature, or market idea by researching real user demand, unmet pain points, workarounds, and verbatim language on Reddit. Best for early-stage idea validation, problem discovery, and pre-build demand checks. Prefers search-engine site:reddit.com discovery over Reddit internal search, deep-reads threads with JSON and old.reddit fallback, filters noisy evidence, and writes a Chinese markdown research memo with English quotes preserved.
+description: Use when the user wants to validate a project, startup, feature, or market idea by researching real user demand, unmet pain points, workarounds, and verbatim language on Reddit. Best for early-stage idea validation, problem discovery, and pre-build demand checks. Prefers search-engine site:reddit.com discovery over Reddit internal search, deep-reads threads with JSON and old.reddit fallback, filters noisy evidence, pre-registers kill criteria before searching, runs a mandatory falsification pass, weights evidence by engagement, and writes a Chinese markdown research memo with English quotes, a riskiest-assumption experiment, and Mom-Test interview questions.
 ---
 
 # Reddit Demand Validator
@@ -36,6 +36,7 @@ If local file writing is unavailable for any reason, return the memo in chat and
 - Read [query-templates.md](query-templates.md) before generating search queries
 - Read [scoring-rubric.md](scoring-rubric.md) before assigning conclusion strength
 - Use [report-template.md](report-template.md) as the output structure
+- Read [reddit-api-toolkit.md](reddit-api-toolkit.md) before any direct Reddit API call
 
 ## Core Rules
 
@@ -52,6 +53,10 @@ If local file writing is unavailable for any reason, return the memo in chat and
 9. Record the actual search queries used. The memo must be auditable enough to debug or rerun.
 10. Every key judgment must point to concrete thread links, and usually at least one quote.
 11. The report must explicitly say it is based only on Reddit and may reflect Reddit's platform bias.
+12. Before running any search, pre-register kill criteria: 2-3 written statements of what evidence would prove the demand weak. The memo must evaluate each one explicitly.
+13. A falsification pass is mandatory. A run that only searched for pain language is invalid - note it and rerun the missing queries.
+14. Record engagement metadata (score, comment count, date, agreement replies) for every deep-read thread. High-resonance threads carry more weight than bare threads; scoring-rubric.md defines the mechanics.
+15. Stated willingness to pay ("take my money") alone can never make the WTP dimension `high`. Only revealed payment evidence (users already paying for substitutes, services, or workarounds) can.
 
 ## Demand vs Business Model
 
@@ -65,6 +70,15 @@ Keep these separate:
 Do not downgrade `strong` demand because the problem is episodic, low-repeat, or hard to monetize. Put those observations in `商业模式提示`, `反向信号`, or `建议下一步验证什么`.
 
 ## Workflow
+
+### 0. Pre-register kill criteria
+
+Before generating any query, write down:
+
+- 2-3 falsification statements: "If I find X, I will conclude demand is weak." Examples: "If most high-engagement threads conclude existing tools are good enough", "If the only complainers are founders, not problem owners", "If recent threads say general AI already solves this acceptably".
+- The strongest counter-hypothesis you can think of (e.g., "this pain was real in 2023 but ChatGPT absorbed it").
+
+These go verbatim into the memo's `预注册的杀死标准` section. Step 8 must evaluate each statement against the evidence and say whether it fired. This is the anti-confirmation-bias spine of the whole skill: you are trying to kill the idea, not confirm it.
 
 ### 1. Normalize the idea
 
@@ -126,6 +140,18 @@ The final memo must include a visible `查询收敛过程` section with:
 - blockers extracted from first-pass evidence
 - second-pass constraint-led queries
 
+### 2.8. Run the falsification pass (mandatory)
+
+After the constraint-led pass, run 3+ falsification queries from [query-templates.md](query-templates.md): satisfaction, good-enough, and AI-absorption versions.
+
+Classify what you find:
+
+- `satisfied`: users say existing tools/workflows solve the problem acceptably
+- `still-complaining`: threads that start as praise but surface persistent gaps
+- `ai-absorbed`: users report that general AI tools (ChatGPT, Claude, etc.) now handle the task acceptably
+
+Record the falsification hit quality the same way as the query log. The memo must include a `证伪轮结果` section. The scoring rubric defines the falsification gate: when satisfied signals dominate among high-engagement threads, the conclusion is capped below `strong`.
+
 ### 3. Build the candidate subreddit list
 
 Promote a subreddit when at least one of these is true:
@@ -182,6 +208,8 @@ When `.json` works:
 - Read the OP body
 - Read up to the top 20 comments by score
 - Expand up to 5 promising second-level reply chains when the thread actually has depth
+- Record metadata for the evidence table: `score`, `num_comments`, `upvote_ratio`, `created_utc`
+- Count distinct agreement replies in the top comments ("same here", "this exactly", "+1", "I have this exact problem")
 
 When only `old.reddit.com` works:
 
@@ -203,6 +231,7 @@ When only search snippets are available:
 Treat evidence as clusters, not raw thread counts.
 
 Count crossposts as one evidence point.
+When unsure whether two threads are crossposts, confirm via the duplicates endpoint (see [reddit-api-toolkit.md](reddit-api-toolkit.md) section 5).
 
 Treat threads as the same evidence cluster when both are true:
 
@@ -214,6 +243,23 @@ When duplicates exist:
 - Keep the most complete thread as the primary evidence
 - Keep the others only as secondary notes showing spread
 - Do not let duplicates increase the frequency score
+
+### 6.5. Cluster pains into named themes
+
+Before classifying evidence quality, group deduplicated threads into named pain clusters:
+
+- A cluster needs 2+ independent mentions to qualify. Single high-quality mentions go to a `弱信号` list, not to clusters.
+- Name each cluster with a concrete theme ("pricing is opaque", "export breaks formatting"), not a category label.
+- Tag each cluster with one type:
+  - `complaint-about-existing`: users complain about a named tool/solution
+  - `absence-of-solution`: users describe a job no tool serves
+  - `feature-request`: users want an addition to a tool they otherwise accept
+- Tag each cluster's solution density:
+  - `white-space`: no solutions named at all
+  - `execution-gap`: solutions exist but complaints persist (better wedge: UX, price, trust)
+  - `saturated`: solutions exist and users sound satisfied
+
+Frequency judgments in Step 8 operate on clusters, not raw threads. Do not conflate feature requests with pain points - label them separately; both are valuable but they are different signals.
 
 ### 7. Classify evidence quality
 
@@ -268,6 +314,7 @@ Use the dimensions in [scoring-rubric.md](scoring-rubric.md):
 - willingness to pay or switch
 - evidence quality
 - individual recurrence frequency
+- trend direction
 
 Assign `high`, `medium`, or `low` to each dimension and back each one with 1-3 links.
 
@@ -279,6 +326,12 @@ Then choose only one overall conclusion:
 
 The overall conclusion must match the mechanical rubric thresholds. Do not "average" by intuition if the evidence clearly says otherwise.
 
+Also in this step:
+
+- Evaluate every pre-registered kill criterion from Step 0: fired / did not fire / partially, each with evidence links.
+- Assess trend direction: compare evidence density in the last 12 months vs. 12-36 months (use `t=year` vs `t=all` searches and thread dates). Flag `ai-absorbed` if 2+ independent recent threads report general AI handling the task acceptably.
+- If the evidence clearly splits across 2+ distinct user segments with different strength, report a per-segment label for the top 2 segments in `分人群判定`. The overall label still follows the mechanical rubric over all evidence; the segment section tells the reader where the wedge is.
+
 Individual recurrence frequency is reported for business-model interpretation. It should not lower the demand-strength conclusion when the demand evidence otherwise meets `strong`.
 
 ### 9. Write the memo
@@ -288,17 +341,24 @@ Use [report-template.md](report-template.md) exactly as the base shape.
 The memo must include:
 
 - a one-line verdict
-- overall conclusion label
-- who has the pain
-- 3-5 unmet pains
+- overall conclusion label with a confidence level
+- pre-registered kill criteria and whether each fired
+- who has the pain, with per-segment labels when evidence splits
+- 3-5 unmet pains as named clusters (type + solution density)
 - current workarounds
 - existing solutions inventory
-- representative verbatim quotes in English
+- falsification pass results
+- evidence thread table (link, subreddit, date, score, comments, agreement count, bucket, cluster)
+- representative verbatim quotes in English, grouped by JTBD role (trigger / failed attempts / emotional language / desired outcome)
+- a marketing copy bank: 3-5 user phrases usable in headlines, each with source link
+- trend direction note
 - query convergence process
 - actual query log
 - counter-signals and reasons not to build
 - business-model implications
-- next validation questions
+- the riskiest assumption and a cheapest-next-experiment design (<=2 weeks, <=$100, behavioral, with a pre-committed pass/fail threshold and kill criteria)
+- a pre-mortem: 3 most probable causes of death if pursued and failed in 12 months
+- 5 Mom-Test style interview questions derived from the findings (past behavior, not future intent)
 - sample and method notes
 - explicit Reddit-only bias note
 - crawl completeness note
