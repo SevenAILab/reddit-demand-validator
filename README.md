@@ -37,6 +37,14 @@ The memo includes:
 - Actual query log
 - Crawl completeness notes
 - Reddit-only bias warning
+- Pre-registered kill criteria with fired/not-fired evaluation
+- Falsification pass results (satisfied / still-complaining / ai-absorbed signals)
+- Evidence thread table with engagement metadata (score, comments, agreement count)
+- Quotes grouped by JTBD role + a marketing copy bank
+- Trend direction with AI-absorption flag
+- Riskiest-assumption experiment (≤2 weeks, ≤$100, pre-committed pass/fail threshold)
+- Pre-mortem and 5 Mom-Test interview questions
+- Confidence level on every verdict
 
 ## Install
 
@@ -107,6 +115,16 @@ Business-model context is reported separately:
 
 This avoids marking a real but episodic need as weak just because it may not be a good SaaS.
 
+### What's new in v2
+
+v1 only searched for complaints - which exist for any topic. v2 makes the skill try to kill the idea first:
+
+- Kill criteria are written down BEFORE searching, and evaluated in the memo
+- A mandatory falsification pass searches for satisfied users and AI-absorbed workflows; dominant satisfaction caps the verdict below `strong`
+- Engagement matters: a 300-upvote complaint with dozens of "same here" replies outweighs five 2-upvote threads
+- Willingness to pay requires revealed evidence (users already paying for substitutes); "take my money" comments alone max out at `medium`
+- Every verdict carries a confidence level, and the memo ends with the single riskiest assumption plus the cheapest behavioral experiment to test it
+
 ## Evidence Rules
 
 The skill uses three evidence buckets:
@@ -138,6 +156,7 @@ Examples of excluded evidence:
   query-templates.md
   report-template.md
   scoring-rubric.md
+  reddit-api-toolkit.md
 ```
 
 ## Notes
@@ -150,4 +169,3 @@ Examples of excluded evidence:
 ## License
 
 MIT
-
