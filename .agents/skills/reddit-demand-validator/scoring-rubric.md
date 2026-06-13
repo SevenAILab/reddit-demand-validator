@@ -14,6 +14,29 @@ Use this rubric after deduplication and evidence classification.
 - `Excluded` evidence does not count at all
 - Judge population frequency using deduplicated evidence clusters, not raw threads
 - Individual recurrence frequency is a business-model context dimension, not a demand-strength downgrade
+- High-resonance threads (defined below) carry extra weight; a cluster containing one counts as 2 effective threads toward the `strong` threshold (at most 2 clusters per run may use this bonus)
+- The falsification gate applies before the conclusion table: if satisfied signals dominate among high-engagement threads found in the falsification pass (roughly 2:1 or worse against pain signals), the conclusion cannot be `strong`
+- Every conclusion carries a confidence level (`high` / `medium` / `low`) defined below; a `low` confidence verdict must be labeled directional, not conclusive
+
+## High-Resonance Thread Definition
+
+A deep-read thread is high-resonance when any of these holds:
+
+- `score` >= 200, or
+- `num_comments` >= 100, or
+- `score` >= 50 AND 5+ distinct agreement replies ("same here", "this exactly", "+1")
+
+For niche subreddits (under 50k subscribers), halve all thresholds. A high-resonance complaint is the community telling you the pain generalizes - it is the cheapest population-frequency signal Reddit offers.
+
+## Confidence Level
+
+| Confidence | Conditions |
+|---|---|
+| `high` | 8+ primary-evidence threads fully read via `.json`, falsification pass completed, no major fallback usage |
+| `medium` | 5-7 primary threads, or notable `old.reddit` fallback usage, or limited comment depth on key threads |
+| `low` | Fewer than 5 primary threads, or heavy snippet reliance, or falsification pass incomplete |
+
+`low` confidence requires this wording next to the verdict: 方向性结论，非定论. Confidence describes how much to trust the label; it never changes the label itself.
 
 ## Mechanical Conclusion Table
 
@@ -21,7 +44,7 @@ Use this table first. Do not override it with gut feel.
 
 | Demand label | Required evidence pattern |
 | --- | --- |
-| `strong` | At least 3 independent subreddits, at least 5 deduplicated effective threads, recurring same or adjacent pain, workaround cost is `medium` or `high`, willingness to pay/switch is at least `medium` or users are actively seeking alternatives, and evidence quality is at least `medium`. |
+| `strong` | At least 3 independent subreddits, at least 5 effective threads after dedup and resonance weighting (a cluster containing a high-resonance thread counts as 2, max 2 such bonuses), recurring same or adjacent pain, workaround cost is `medium` or `high`, willingness to pay/switch is at least `medium` or users are actively seeking alternatives, evidence quality is at least `medium`, AND the falsification gate did not fire. |
 | `mixed` | Real pain exists, but one or more demand-strength inputs are incomplete: fewer than 3 subreddits, fewer than 5 effective threads, unclear workaround cost, weak or conflicting alternative-seeking, high incumbent satisfaction, or evidence quality only `medium` with important caveats. |
 | `weak` | Evidence is sparse, old, mostly inaccessible, mainly founder chatter, mostly weak evidence, or users quickly indicate existing alternatives already solve the problem well enough. |
 
@@ -32,6 +55,8 @@ Tie-breakers:
 - If evidence quality is `low`, the result cannot be `strong`
 - If all key support is `weak evidence`, the result must be `weak`
 - If incumbent maturity is `high` because users are satisfied, the result is usually `mixed` or `weak`; if incumbent maturity is `high` but users still complain about gaps, use the other dimensions to decide
+- If the falsification gate fired, the maximum conclusion is `mixed`, regardless of pain-side evidence volume
+- If trend direction is `declining` AND the `ai-absorbed` flag is set, the maximum conclusion is `mixed`; say explicitly that the window for this pain may be closing
 
 ## Dimension Rubric
 
@@ -123,15 +148,17 @@ This dimension can affect demand strength only when users appear satisfied. A ma
 
 ### 6. Willingness To Pay Or Switch
 
+Revealed preference (what users already pay) outranks stated preference (what users say they would pay).
+
 - `high`
-  - Users explicitly say they would pay, buy, subscribe, or switch
-  - They ask for alternatives because current options are unacceptable
+  - Revealed evidence only: users are already paying for substitutes - inferior tools they keep subscribing to, agencies/freelancers hired for this job, scripts/services they bought, concrete dollar amounts mentioned
   - Anchor examples:
-    - "take my money"
-    - "I'd pay for this"
-    - "happy to switch if..."
+    - "I pay $40/mo for X and it still can't..."
+    - "we ended up hiring someone to do this manually"
+    - r/forhire postings paying for this exact task
 - `medium`
-  - Users imply meaningful dissatisfaction and interest in alternatives, but without direct price or switching language
+  - Explicit stated willingness ("I'd pay for this", "take my money") or active alternative-seeking because current options are unacceptable
+  - Stated-only evidence can never exceed `medium`
 - `low`
   - Users say current tools are good enough, not worth paying for, or not worth changing
 
@@ -148,6 +175,19 @@ This dimension can affect demand strength only when users appear satisfied. A ma
 - `low`
   - Much of the case depends on snippets, founder chatter, suspicious authors, or inaccessible threads
   - Many threads ask strangers to solve the problem directly without enough context to explain the underlying unmet need
+
+### 8. Trend Direction
+
+Compare evidence density across time windows (threads from the last 12 months vs. 12-36 months, via `t=year` / `t=all` searches and thread dates).
+
+- `rising`
+  - Clearly more recent threads; new subreddits or new vocabulary forming around the pain
+- `stable`
+  - Similar density across windows; long-lived recurring pain
+- `declining`
+  - Mostly old threads; recent discussion sparse or resolved
+
+Additionally set the `ai-absorbed` flag when 2+ independent threads from the last 12 months report that general AI tools now handle the task acceptably. `declining` + `ai-absorbed` caps the overall conclusion at `mixed` (see tie-breakers). A `rising` trend strengthens the build-now case and belongs in the memo's trend note.
 
 ## Business-Model Notes
 
