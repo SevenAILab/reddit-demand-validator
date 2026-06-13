@@ -19,6 +19,48 @@ Start broad enough to discover communities, then narrow into the promising subre
 - `<category>`: the broader product category
 - `<pain relief>`: the relief they say they want, not your product pitch
 
+## Falsification (MANDATORY — run after the constraint-led pass)
+
+Every run MUST include 3+ falsification queries. The goal is to actively search for evidence that the demand is NOT real: satisfied users, "good enough" incumbents, problems already absorbed by general AI tools. A validation that only searches for complaints will find complaints for any topic.
+
+### Satisfaction version
+
+```text
+site:reddit.com/r/ ("works great" OR "works fine" OR "no complaints" OR "does everything I need" OR "happy with") ("<current tool>" OR "<category>")
+```
+
+### Good-enough version
+
+```text
+site:reddit.com/r/ ("just use" OR "is enough" OR "good enough" OR "why not just" OR "solved my problem") ("<task>" OR "<problem>")
+```
+
+### AI-absorption version
+
+```text
+site:reddit.com/r/ ("just ask chatgpt" OR "I use claude for" OR "AI does this" OR "chatgpt solved") ("<task>" OR "<problem>")
+```
+
+Record falsification hits with the same rigor as pain hits. The memo must report the falsification results, and scoring-rubric.md defines how dominant satisfaction caps the conclusion.
+
+## Money Talk (revealed willingness to pay)
+
+Stated intent ("take my money") is cheap. Search for users ALREADY PAYING for substitutes:
+
+### Current-spend version
+
+```text
+site:reddit.com/r/ ("I pay" OR "I'm paying" OR "costs me" OR "$ per month" OR "subscription for") ("<task>" OR "<category>")
+```
+
+### Service/agency version
+
+```text
+site:reddit.com/r/ ("hired" OR "freelancer" OR "agency" OR "outsourced" OR "paid someone to") ("<task>")
+```
+
+Also check r/forhire and r/slavelabour via the Reddit API (see [reddit-api-toolkit.md](reddit-api-toolkit.md) section 8) for concrete prices paid for this job.
+
 ## Pain
 
 Use this first. It is the best query family for subreddit discovery.
@@ -157,6 +199,8 @@ For a normal run, use roughly:
 - 2-3 workaround queries
 - 1-2 switching queries
 - 1-2 willingness-to-pay queries
+- 1-2 money-talk queries (revealed spend)
+- 3+ falsification queries (mandatory, run as the final pass)
 
 If evidence is thin, iterate on user language rather than immediately broadening to startup jargon.
 
@@ -200,3 +244,14 @@ Choose only the blocker types that actually appeared in the first-pass evidence.
 - workflow complexity
 
 Do not guess blockers that did not appear in the first-pass threads. The second pass should be evidence-led, not imagination-led.
+
+## In-Subreddit Follow-Up (Reddit API)
+
+Once a subreddit is promoted into the candidate list, run the constraint-led queries INSIDE it via the Reddit API for higher precision than search engines:
+
+```bash
+curl -s -A "demand-validator/2.0" \
+  "https://www.reddit.com/r/{subreddit}/search.json?q={blocker phrase}&restrict_sr=on&sort=relevance&t=year&limit=25"
+```
+
+See [reddit-api-toolkit.md](reddit-api-toolkit.md) for time filters, comment search, and rate limits.
